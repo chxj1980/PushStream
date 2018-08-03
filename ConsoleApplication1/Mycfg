@@ -1,0 +1,5 @@
+[ClientConfig]
+CameraNumbers=1
+CHANNELCONN=rtsp://admin:admin172@192.168.0.254:554/h264/ch1/main/av_stream
+PUSHURL=rtmp://47.97.169.87:1935/openstream/test
+
