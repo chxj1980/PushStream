@@ -65,15 +65,31 @@ public:
 	bool SendH264Packet(unsigned char *data,unsigned int size,bool bIsKeyFrame,unsigned int nTimeStamp);
 	// 发送H264文件
 	bool SendH264File(const char *pFileName);
-public:
+protected:
 	// 送缓存中读取一个NALU包
 	bool ReadOneNaluFromBuf(NaluUnit &nalu);
 	// 发送数据
 	int SendPacket(unsigned int nPacketType,unsigned char *data,unsigned int size,unsigned int nTimestamp);
 public:
+	void Resetm_pFileBuf();
+	void Resetm_nCurPos(unsigned int NewPos);
+	void SendOverSet(unsigned int NewPos);
+
+	void Setm_nFileBufSize(const int buffersize);
+	void Setm_pFileBuf(const unsigned char * data, const int datasize);
+	void SendBeginSet(const unsigned char * data, const int size);
+
+	void SendOneNaluUnit();
+	void GetH264Init();
+	
+private:
 	RTMP* m_pRtmp;
 	unsigned char* m_pFileBuf;
 	unsigned int  m_nFileBufSize;
 	unsigned int  m_nCurPos;
 	unsigned int m_nwritePos;
+
+	unsigned int tick ;
+	NaluUnit naluUnit;
+	RTMPMetadata metaData;
 };

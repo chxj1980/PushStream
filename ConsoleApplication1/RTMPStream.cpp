@@ -103,6 +103,8 @@ m_nFileBufSize(0),
 m_nCurPos(0),
 m_nwritePos(0)
 {
+
+	tick = 0;
 	m_pFileBuf = new unsigned char[FILEBUFSIZE];
 	memset(m_pFileBuf,0,FILEBUFSIZE);
 	InitSockets();
@@ -169,6 +171,73 @@ int CRTMPStream::SendPacket(unsigned int nPacketType,unsigned char *data,unsigne
 	RTMPPacket_Free(&packet);
 
 	return nRet;
+}
+
+void CRTMPStream::Resetm_pFileBuf()
+{
+	memset(m_pFileBuf, 0, FILEBUFSIZE);
+}
+
+void CRTMPStream::Resetm_nCurPos(unsigned int NewPos)
+{
+	m_nCurPos = NewPos;
+}
+
+void CRTMPStream::SendOverSet(unsigned int NewPos)
+{
+	Resetm_nCurPos(NewPos);
+	Resetm_pFileBuf();
+}
+
+void CRTMPStream::Setm_nFileBufSize(const int buffersize)
+{
+	m_nFileBufSize = buffersize;
+}
+
+void CRTMPStream::Setm_pFileBuf(const unsigned char * data, const int datasize)
+{
+	memcpy(m_pFileBuf,data,datasize);
+}
+
+void CRTMPStream::SendBeginSet(const unsigned char * data, const int size)
+{
+	Setm_nFileBufSize(size);
+	Setm_pFileBuf(data, size);
+}
+
+void CRTMPStream::SendOneNaluUnit()
+{
+
+	while (ReadOneNaluFromBuf(naluUnit))
+	{
+		bool bKeyframe = (naluUnit.type == 0x05) ? TRUE : FALSE;
+		// 发送H264数据帧
+		SendH264Packet(naluUnit.data, naluUnit.size, bKeyframe, tick);
+		msleep(40);
+		tick += 40;
+		//printf("send");
+	}
+}
+
+void CRTMPStream::GetH264Init()
+{
+	//RTMPMetadata metaData;
+	memset(&metaData, 0, sizeof(RTMPMetadata));
+	// 读取SPS帧
+	ReadOneNaluFromBuf(naluUnit);
+	metaData.nSpsLen = naluUnit.size;
+	memcpy(metaData.Sps, naluUnit.data, naluUnit.size);
+	//读取PPS帧
+	ReadOneNaluFromBuf(naluUnit);
+	metaData.nPpsLen = naluUnit.size;
+	memcpy(metaData.Pps, naluUnit.data, naluUnit.size);
+	// 解码SPS,获取视频图像宽、高信息
+	int width = 0, height = 0;
+	h264_decode_sps(metaData.Sps, metaData.nSpsLen, width, height);
+	metaData.nWidth = width;
+	metaData.nHeight = height;
+	metaData.nFrameRate = 25;//默认帧率25  待改进
+	SendMetadata(&metaData);
 }
 
 bool CRTMPStream::SendMetadata(LPRTMPMetadata lpMetaData)

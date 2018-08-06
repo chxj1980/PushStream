@@ -224,7 +224,7 @@ void NVRMediaObject::threadProduce()
 	pkt.size = 0;
 
 
-	unsigned int tick = 0;
+
 	while (bRun)
 	{
 		//**//
@@ -242,163 +242,53 @@ void NVRMediaObject::threadProduce()
 
 		AVPacket tmppkt;
 
-		NaluUnit naluUnit;
+		//NaluUnit naluUnit;
 		
 
 		if (in_stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 
-			if (flag&&(pkt.flags &AV_PKT_FLAG_KEY))
+			if (flag&&(pkt.flags &AV_PKT_FLAG_KEY))//第一帧关键帧
 			//if (pkt.flags &AV_PKT_FLAG_KEY)
 			{
-
+				//填充为标准H264
 				pkt.data[0] = 0x00;
 				pkt.data[1] = 0x00;
 				pkt.data[2] = 0x00;
 				pkt.data[3] = 0x01;
-				fwrite(pkt.data, pkt.size, 1, fp);
+
+				//fwrite(pkt.data, pkt.size, 1, fp);
 				/////////////////////////////////////////////
 
 				//****************planA********begin*********///////////////
 
-				//h264处理
-				//rtmpSender.m_nFileBufSize += pkt.size;
-				rtmpSender.m_nFileBufSize = pkt.size;
 
-
-				//memcpy(rtmpSender.m_pFileBuf+rtmpSender.m_nwritePos, pkt.data, pkt.size);
-				//rtmpSender.m_nwritePos = rtmpSender.m_nFileBufSize;
-
-				memcpy(rtmpSender.m_pFileBuf  , pkt.data, pkt.size );
-
-
-				RTMPMetadata metaData;
-				memset(&metaData, 0, sizeof(RTMPMetadata));
-				// 读取SPS帧
-				rtmpSender.ReadOneNaluFromBuf(naluUnit);
-				metaData.nSpsLen = naluUnit.size;
-				memcpy(metaData.Sps, naluUnit.data, naluUnit.size);
-				//读取PPS帧
-				rtmpSender.ReadOneNaluFromBuf(naluUnit);
-				metaData.nPpsLen = naluUnit.size;
-				memcpy(metaData.Pps, naluUnit.data, naluUnit.size);
-				// 解码SPS,获取视频图像宽、高信息
-				int width = 0, height = 0;
-				h264_decode_sps(metaData.Sps, metaData.nSpsLen, width, height);
-				metaData.nWidth = width;
-				metaData.nHeight = height;
-				metaData.nFrameRate = 25;
-				// 发送MetaData
-				rtmpSender.SendMetadata(&metaData);
-				while (rtmpSender.ReadOneNaluFromBuf(naluUnit))
-				{
-					bool bKeyframe = (naluUnit.type == 0x05) ? TRUE : FALSE;
-					// 发送H264数据帧
-					rtmpSender.SendH264Packet(naluUnit.data, naluUnit.size, bKeyframe, tick);
-					msleep(delttime);
-					tick += delttime;
-				}
-				rtmpSender.m_nCurPos = 0;
-				memset(rtmpSender.m_pFileBuf, 0, FILEBUFSIZE);
+				rtmpSender.SendBeginSet(pkt.data, pkt.size);//缓冲区大小设置，数据拷贝
+				rtmpSender.GetH264Init();//发送H264 头
+				rtmpSender.SendOneNaluUnit();//发送一个NaluUnit单元
+				rtmpSender.SendOverSet(0);//发送完一个NaluUnit单元的清理
 				//****************planA********end*********///////////////
 				flag = 0;
 			}
 			else if(flag==0)
 			{
-
 				//****************planA********begin*********///////////////
 				pkt.data[0] = 0x00;
 				pkt.data[1] = 0x00;
 				pkt.data[2] = 0x00;
 				pkt.data[3] = 0x01;
-
-				fwrite(pkt.data, pkt.size, 1, fp);
-
-				//rtmpSender.m_nFileBufSize += pkt.size;
-
-				rtmpSender.m_nFileBufSize = pkt.size;
-
-				//memset(rtmpSender.m_pFileBuf, 0, sizeof(rtmpSender.m_pFileBuf));
-				
-				//memcpy(rtmpSender.m_pFileBuf + rtmpSender.m_nwritePos, pkt.data, pkt.size);
-				//rtmpSender.m_nwritePos = rtmpSender.m_nFileBufSize;
-
-
-				memcpy(rtmpSender.m_pFileBuf  , pkt.data, pkt.size );
-				//rtmpSender.m_nwritePos = rtmpSender.m_nFileBufSize;
-
-				while (rtmpSender.ReadOneNaluFromBuf(naluUnit))
-				{
-					bool bKeyframe = (naluUnit.type == 0x05) ? TRUE : FALSE;
-					// 发送H264数据帧
-					rtmpSender.SendH264Packet(naluUnit.data, naluUnit.size, bKeyframe, tick);
-					msleep(delttime);
-					tick += delttime;
-					//printf("send");
-				}
-
-
-				rtmpSender.m_nCurPos = 0;
-				//m_pFileBuf = new unsigned char[FILEBUFSIZE];
-				memset(rtmpSender.m_pFileBuf, 0, FILEBUFSIZE);
+				//fwrite(pkt.data, pkt.size, 1, fp);
+				//rtmpSender.m_nFileBufSize = pkt.size;
+				rtmpSender.SendBeginSet(pkt.data, pkt.size);
+				rtmpSender.SendOneNaluUnit( );
+				rtmpSender.SendOverSet(0);
 				//****************planA********end*********///////////////
 			}
-
-
-				//fwrite(startcode, 4, 1, fp);
-				//fwrite(sps, spsLength, 1, fp);
-				//fwrite(startcode, 4, 1, fp);
-				//fwrite(pps, ppsLength, 1, fp);
-
-				//packet->data[0] = 0x00;
-				//packet->data[1] = 0x00;
-				//packet->data[2] = 0x00;
-				//packet->data[3] = 0x01;
-
-				//memcpy(rtmppacket->m_body, packet->data, packet->size);
-
-				//rtmppacket->m_packetType = RTMP_PACKET_TYPE_VIDEO;
-				//rtmppacket->m_nBodySize = packet->size;
-				//rtmppacket->m_nChannel = 0x04;
-				//rtmppacket->m_nTimeStamp = 0;
-				//rtmppacket->m_hasAbsTimestamp = 0;
-				//rtmppacket->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
-
-				//rtmppacket->m_nInfoField2 = m_pRtmp->m_stream_id;
-				////pre_frame_time = timestamp;
-				//RTMP_SendPacket(m_pRtmp, rtmppacket, true);
-				//fwrite(startcode, 4, 1, fp);
-				//fwrite(nal_start, 4, 1, fp);
-				//fwrite(packet->data + 4, packet->size - 4, 1, fp);
-
-
-
-				//printf("s");
-				
-				//free(rtmppacket);    //释放内存
-				
-			//pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-			//pkt.dts = av_rescale_q_rnd(pkt.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-			//pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
-			//pkt.pos = -1;
-
-			//pkt.stream_index = 0;
-			//ret = av_interleaved_write_frame(oc, &pkt);
+			//**改进建议**//
+			//维护数据缓冲区
+			//线程发送RTMP
 		}
-
-
-		//	n_sendBytes += packet->size;
-		//	if (packet->pts != AV_NOPTS_VALUE)
-		//		packet->pts = av_rescale_q(packet->pts, m_Input_Video_Ctx->streams[m_input_videostream_index]->time_base, m_Output_Ctx->streams[0]->time_base);
-
-		//	if (packet->dts != AV_NOPTS_VALUE)
-		//		packet->dts = av_rescale_q(packet->dts, m_Input_Video_Ctx->streams[m_input_videostream_index]->time_base,  m_Output_Ctx->streams[0]->time_base);
-
-		//	if (packet->duration > 0)
-		//		packet->duration = av_rescale_q(packet->duration, m_Input_Video_Ctx->streams[m_input_videostream_index]->time_base, m_Output_Ctx->streams[0]->time_base);
-		//	int ret = av_interleaved_write_frame(m_Output_Ctx, packet);
 		av_packet_unref(packet);
-
 	}
 
 
