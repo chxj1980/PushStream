@@ -193,7 +193,6 @@
     <ClCompile Include="NVRMediaObject.cpp" />
     <ClCompile Include="PacketQueue.cpp" />
     <ClCompile Include="PushStream.cpp" />
-    <ClCompile Include="RTMPSender.cpp" />
     <ClCompile Include="RTMPStream.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

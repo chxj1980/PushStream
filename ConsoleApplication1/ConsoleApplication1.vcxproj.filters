@@ -95,9 +95,6 @@
     <ClCompile Include="NVRMediaObject.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="RTMPSender.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="RTMPStream.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
